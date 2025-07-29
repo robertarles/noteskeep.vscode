@@ -1,8 +1,9 @@
 {
-    "name": "noteskeep.vscode",
-    "displayName": "noteskeep.vscode",
+    "name": "noteskeep-vscode",
+    "displayName": "Noteskeep",
     "description": "Folds html comments in markdown docs by default",
     "version": "0.0.1",
+    "publisher": "robertarles",
     "engines": {
         "vscode": "^1.87.0"
     },
