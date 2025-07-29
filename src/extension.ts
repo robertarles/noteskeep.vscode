@@ -3,63 +3,55 @@ import * as vscode from 'vscode';
 
 export function activate(context: vscode.ExtensionContext) {
 
-    const fold = (editor: vscode.TextEditor, ranges: vscode.Range[]) => {
-        editor.selections = ranges.map(range => new vscode.Selection(range.start, range.end));
-        vscode.commands.executeCommand('editor.fold');
-    };
-
-    const unfold = (editor: vscode.TextEditor, ranges: vscode.Range[]) => {
-        editor.selections = ranges.map(range => new vscode.Selection(range.start, range.end));
-        vscode.commands.executeCommand('editor.unfold');
-    };
-
+    // Correctly finds HTML comments, including multi-line ones.
     const findHtmlComments = (doc: vscode.TextDocument): vscode.Range[] => {
+        const text = doc.getText();
         const ranges: vscode.Range[] = [];
         const commentRegex = /<!--[\s\S]*?-->/g;
-        for (let i = 0; i < doc.lineCount; i++) {
-            const line = doc.lineAt(i);
-            let match;
-            while ((match = commentRegex.exec(line.text)) !== null) {
-                const start = new vscode.Position(i, match.index);
-                const end = new vscode.Position(i, match.index + match[0].length);
-                ranges.push(new vscode.Range(start, end));
-            }
+        let match;
+        while ((match = commentRegex.exec(text)) !== null) {
+            const start = doc.positionAt(match.index);
+            const end = doc.positionAt(match.index + match[0].length);
+            ranges.push(new vscode.Range(start, end));
         }
         return ranges;
     };
 
-    const foldAll = () => {
-        const editor = vscode.window.activeTextEditor;
-        if (editor && editor.document.languageId === 'markdown') {
-            const ranges = findHtmlComments(editor.document);
-            if (ranges.length) {
-                fold(editor, ranges);
+    // Higher-order function to wrap commands that operate on a markdown editor.
+    const withMarkdownEditor = (command: (editor: vscode.TextEditor) => void) => {
+        return () => {
+            const editor = vscode.window.activeTextEditor;
+            if (editor && editor.document.languageId === 'markdown') {
+                command(editor);
             }
-        }
+        };
     };
 
-    const unfoldAll = () => {
-        const editor = vscode.window.activeTextEditor;
-        if (editor && editor.document.languageId === 'markdown') {
-            const ranges = findHtmlComments(editor.document);
-            if (ranges.length) {
-                unfold(editor, ranges);
-            }
+    const foldAll = withMarkdownEditor(editor => {
+        const ranges = findHtmlComments(editor.document);
+        if (ranges.length) {
+            editor.selections = ranges.map(range => new vscode.Selection(range.start, range.end));
+            vscode.commands.executeCommand('editor.fold');
         }
-    };
+    });
 
-    const toggleFold = () => {
-        const editor = vscode.window.activeTextEditor;
-        if (editor && editor.document.languageId === 'markdown') {
-            const ranges = findHtmlComments(editor.document);
-            const selection = editor.selection;
-            const selectedRange = ranges.find(range => selection.active.isAfterOrEqual(range.start) && selection.active.isBeforeOrEqual(range.end));
-            if (selectedRange) {
-                editor.selections = [new vscode.Selection(selectedRange.start, selectedRange.end)];
-                vscode.commands.executeCommand('editor.toggleFold');
-            }
+    const unfoldAll = withMarkdownEditor(editor => {
+        const ranges = findHtmlComments(editor.document);
+        if (ranges.length) {
+            editor.selections = ranges.map(range => new vscode.Selection(range.start, range.end));
+            vscode.commands.executeCommand('editor.unfold');
         }
-    };
+    });
+
+    const toggleFold = withMarkdownEditor(editor => {
+        const ranges = findHtmlComments(editor.document);
+        const selection = editor.selection;
+        const selectedRange = ranges.find(range => selection.active.isAfterOrEqual(range.start) && selection.active.isBeforeOrEqual(range.end));
+        if (selectedRange) {
+            editor.selections = [new vscode.Selection(selectedRange.start, selectedRange.end)];
+            vscode.commands.executeCommand('editor.toggleFold');
+        }
+    });
 
     context.subscriptions.push(
         vscode.commands.registerCommand('noteskeep.foldAll', foldAll),
@@ -67,15 +59,15 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('noteskeep.toggleFold', toggleFold)
     );
 
-    vscode.window.onDidChangeActiveTextEditor(editor => {
+    // Auto-fold comments on activation and when the active editor changes.
+    const autoFoldOnMarkdown = (editor: vscode.TextEditor | undefined) => {
         if (editor && editor.document.languageId === 'markdown') {
             foldAll();
         }
-    });
+    };
 
-    if (vscode.window.activeTextEditor && vscode.window.activeTextEditor.document.languageId === 'markdown') {
-        foldAll();
-    }
+    vscode.window.onDidChangeActiveTextEditor(autoFoldOnMarkdown);
+    autoFoldOnMarkdown(vscode.window.activeTextEditor);
 }
 
 export function deactivate() {}
