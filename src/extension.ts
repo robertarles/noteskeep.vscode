@@ -1,7 +1,16 @@
 
 import * as vscode from 'vscode';
+import { HtmlCommentFoldingProvider } from './foldingProvider';
 
 export function activate(context: vscode.ExtensionContext) {
+
+    // Register the folding range provider for markdown files
+    context.subscriptions.push(
+        vscode.languages.registerFoldingRangeProvider(
+            { scheme: 'file', language: 'markdown' },
+            new HtmlCommentFoldingProvider()
+        )
+    );
 
     // Correctly finds HTML comments, including multi-line ones.
     const findHtmlComments = (doc: vscode.TextDocument): vscode.Range[] => {
@@ -28,19 +37,13 @@ export function activate(context: vscode.ExtensionContext) {
     };
 
     const foldAll = withMarkdownEditor(editor => {
-        const ranges = findHtmlComments(editor.document);
-        if (ranges.length) {
-            editor.selections = ranges.map(range => new vscode.Selection(range.start, range.end));
-            vscode.commands.executeCommand('editor.fold');
-        }
+        // Use the built-in fold command, which will now respect our folding ranges
+        vscode.commands.executeCommand('editor.foldAllMarkerRegions');
     });
 
     const unfoldAll = withMarkdownEditor(editor => {
-        const ranges = findHtmlComments(editor.document);
-        if (ranges.length) {
-            editor.selections = ranges.map(range => new vscode.Selection(range.start, range.end));
-            vscode.commands.executeCommand('editor.unfold');
-        }
+        // Use the built-in unfold command, which will now respect our folding ranges
+        vscode.commands.executeCommand('editor.unfoldAllMarkerRegions');
     });
 
     const toggleFold = withMarkdownEditor(editor => {
