@@ -40,13 +40,9 @@ Contributions are welcome!
 To test the extension locally without launching a separate development host, you can package it and install it manually.
 
 1. **Package the extension:**
-   First, you need to install the `vsce` packaging tool globally:
+   Run the packaging script from the project root:
    ```bash
-   npm install -g @vscode/vsce
-   ```
-   Then, run the packaging command in the project root:
-   ```bash
-   vsce package
+   npm run package
    ```
    This will create a `.vsix` file (e.g., `noteskeep.vscode-0.0.1.vsix`).
 
