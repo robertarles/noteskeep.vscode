@@ -4,6 +4,10 @@
     "description": "Folds html comments in markdown docs by default",
     "version": "0.0.1",
     "publisher": "robertarles",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/robertarles/noteskeep.vscode.git"
+    },
     "engines": {
         "vscode": "^1.87.0"
     },
